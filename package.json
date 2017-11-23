@@ -1,0 +1,12 @@
+{
+  "name": "gitlab-changelog-generator",
+  "version": "0.0.1",
+  "description": "Generates a GitLab changelog",
+  "main": "create_changelog.js",
+  "author": "Vini Dias",
+  "dependencies": {
+    "node": "^9.2.0",
+    "request": "^2.83.0",
+    "request-promise": "^4.2.2"
+  }
+}
