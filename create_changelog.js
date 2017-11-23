@@ -68,7 +68,7 @@ function print(text) {
 
 function printCommits(projectName, versionName, versionDate, commits) {
     print('=================================================');
-    print(`${projectName} - ${versionName} (Liberada ${versionDate.getFullYear()}-${versionDate.getMonth()+1}-${versionDate.getDate()})`);
+    print(`${projectName} - ${versionName} (Released ${versionDate.getFullYear()}-${versionDate.getMonth()+1}-${versionDate.getDate()})`);
 
     for (let i =0; i < commits.length; i++) {
         print(`\t${commits[i].title}`);
@@ -79,7 +79,7 @@ function printCommits(projectName, versionName, versionDate, commits) {
 
 function showHelp(args) {
     print(`Usage: ${args[0]} ${args[1]} gitlab_url gitlab_project gitlab_private_token [--release_indicator ri]`);
-    print(`Example: ${args[0]} ${args[1]} http://example.gitlab.com yAS8Kkmdcma2fjw09e --release_indicator tags`);
+    print(`Example: ${args[0]} ${args[1]} http://example.gitlab.com myGitLabProject yAS8Kkmdcma2fjw09e --release_indicator tags`);
     print('');
     print('Possible values for release_indicator are: merge_requests and tags. Default is tags');
     print('If tags is selected as the release indicator, each release in the changelog is a GitLab tag, and the release content is the commits in that tag');
