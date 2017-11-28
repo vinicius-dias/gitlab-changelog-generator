@@ -86,6 +86,83 @@ function showHelp(args) {
     print('If merge_requests s is selected as the release indicator, each release in the changelog is a Merge Request to the branch Master (that is actually merged), and the release content is the commits in that merge request');
 }
 
+function sortAndPrintReleases(releases, projectName) {
+    releases = releases.sort((a, b) => a.release.releaseDate - b.release.releaseDate);
+    for (let i =0; i < releases.length; i++) {
+        printCommits(projectName, releases[i].release.versionName, releases[i].release.releaseDate, releases[i].commits);
+    }
+}
+
+function retriveByTags(gitlab) {
+    gitlab.getTags().then((tags) => {
+        const allPromises = [];
+
+        for (let i = 0; i < tags.length; i++) {
+            const currentTag = tags[i];
+            allPromises.push(gitlab.getCommits(currentTag.name));
+        }
+
+        Promise.all(allPromises).then((allCommits) => { 
+            const releases = [];
+
+            for (let i = 0; i < allCommits.length; i++) {
+                const commits = allCommits[i];
+
+                let currentTag = null;
+                for (let j = 0; j < tags.length && currentTag === null; j++) {
+                    if (tags[j].commit.id === commits[0].id) {
+                        currentTag = tags[j];
+                    }
+                }
+
+                if (currentTag !== null) {
+                    currentTag.releaseDate = new Date(currentTag.commit.committed_date);
+                    currentTag.versionName = currentTag.name;
+                    releases.push({release: currentTag, commits: commits});
+                }
+            }
+
+            sortAndPrintReleases(releases, gitlab.project.name);
+        });
+    });
+}
+
+function retrieveByMergeRequests(gitlab) {
+    gitlab.getMergeRequests().then((mrs) => {
+        const allPromises = [];
+
+        for (let i = 0; i < mrs.length; i++) {
+            const currentMR = mrs[i];
+            if (currentMR.target_branch === 'master') {
+                allPromises.push(gitlab.getCommits(currentMR.source_branch));
+            }
+        }
+
+        Promise.all(allPromises).then((allCommits) => { 
+            const releases = [];
+
+            for (let i = 0; i < allCommits.length; i++) {
+                const commits = allCommits[i];
+
+                let currentMR = null;
+                for (let j = 0; j < mrs.length && currentMR === null; j++) {
+                    if (mrs[j].sha === commits[0].id) {
+                        currentMR = mrs[j];
+                    }
+                }
+
+                if (currentMR !== null) {
+                    currentMR.releaseDate = new Date(currentMR.created_at);
+                    currentMR.versionName = currentMR.source_branch;
+                    releases.push({release: currentMR, commits: commits});
+                }
+            }
+
+            sortAndPrintReleases(releases, gitlab.project.name);
+        });
+    });
+}
+
 const args = process.argv;
 
 if (args.length !== 5 && args.length !== 7) {
@@ -107,7 +184,7 @@ if (args.length !== 5 && args.length !== 7) {
     const gitlab = new GitLab(GITLAB_URL, PRIVATE_TOKEN);
 
     gitlab.getProjects(PROJECT_NAME).then((projectsFound) => {
-        for(var i = 0 ; i < projectsFound.length; i++) {
+        for(let i = 0 ; i < projectsFound.length; i++) {
             if (projectsFound[i].name === PROJECT_NAME) {
                 gitlab.setProject(projectsFound[i]);
                 break;
@@ -115,28 +192,10 @@ if (args.length !== 5 && args.length !== 7) {
         }
 
         if (retriever === 'tags') {
-            gitlab.getTags().then((tags) => {
-                for (var i = 0; i < tags.length; i++) {
-                    const currentTag = tags[i];
-                    const currentTagDate =  new Date(currentTag.commit.committed_date);
-        
-                    gitlab.getCommits(currentTag.name).then((commits) => {
-                        printCommits(PROJECT_NAME, currentTag.name, currentTagDate, commits);
-                    });
-                }
-            });
+            retriveByTags(gitlab);
+
         } else {
-            gitlab.getMergeRequests().then((mrs) => {
-                for (var i = 0; i < mrs.length; i++) {
-                    const currentMR = mrs[i];
-        
-                    if (currentMR.target_branch === 'master') {
-                        gitlab.getCommits(currentMR.source_branch).then((commits) => {
-                            printCommits(PROJECT_NAME, currentMR.source_branch, new Date(currentMR.created_at), commits);
-                        });
-                    }
-                }
-            });
+            retrieveByMergeRequests(gitlab);
         }
     });    
 }
