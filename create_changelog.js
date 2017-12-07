@@ -71,7 +71,9 @@ function printCommits(projectName, versionName, versionDate, commits) {
     print(`${projectName} - ${versionName} (Released ${versionDate.getFullYear()}-${versionDate.getMonth()+1}-${versionDate.getDate()})`);
 
     for (let i =0; i < commits.length; i++) {
-        print(`\t${commits[i].title}`);
+        if (!commits[i].title.startsWith('Merge branch')) {
+            print(`\t${commits[i].title}`);
+        }
     }
 
     print('\n');
@@ -180,7 +182,7 @@ if (args.length !== 5 && args.length !== 7) {
     } else {
         print('Using tags as release indicator');
     }
-    
+
     const gitlab = new GitLab(GITLAB_URL, PRIVATE_TOKEN);
 
     gitlab.getProjects(PROJECT_NAME).then((projectsFound) => {
@@ -197,5 +199,5 @@ if (args.length !== 5 && args.length !== 7) {
         } else {
             retrieveByMergeRequests(gitlab);
         }
-    });    
+    }).catch((error) => {console.error(error)});    
 }
